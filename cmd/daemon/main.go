@@ -11,21 +11,25 @@ import (
 	"go.uber.org/zap"
 )
 
+// AppOptions definisce il grafo delle dipendenze dell'applicazione.
+// Esportandolo, possiamo testare che il grafo sia valido senza lanciare il main.
+var AppOptions = fx.Options(
+	// Logger configuration
+	fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
+		return &fxevent.ZapLogger{Logger: log}
+	}),
+
+	// Provide dependencies (Qui aggiungerai monitor.NewMprisMonitor, etc.)
+	fx.Provide(
+		newLogger,
+	),
+
+	// Lifecycle hooks
+	fx.Invoke(registerHooks),
+)
+
 func main() {
-	app := fx.New(
-		// Logger configuration
-		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
-			return &fxevent.ZapLogger{Logger: log}
-		}),
-		
-		// Provide dependencies
-		fx.Provide(
-			newLogger,
-		),
-		
-		// Lifecycle hooks
-		fx.Invoke(registerHooks),
-	)
+	app := fx.New(AppOptions)
 
 	// Handle graceful shutdown
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

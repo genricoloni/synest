@@ -35,12 +35,11 @@ test:
 # Run tests with coverage
 test-coverage:
 	@echo "Running tests with coverage..."
-	$(GOTEST) ./... -v -coverprofile=coverage.out -coverpkg=./internal/...,./cmd/... | grep -v "no packages being tested depend on matches for pattern"
-	@grep -v -E "(mocks/|dbus_client\.go)" coverage.out > coverage.tmp && mv coverage.tmp coverage.out
-	$(GOCMD) tool cover -html=coverage.out -o coverage.html
-	@echo "Coverage report generated: coverage.html"
-	@echo "Opening coverage report in browser..."
-	@xdg-open coverage.html 2>/dev/null || open coverage.html 2>/dev/null || echo "Please open coverage.html manually"
+	$(GOTEST) ./... -v -covermode=atomic -coverprofile=coverage.out
+	grep -vE "_mock.go|dbus_client.go" coverage.out > coverage.clean.out
+	$(GOCMD) tool cover -html=coverage.clean.out -o coverage.html
+	@echo "Opening coverage report..."
+	xdg-open coverage.html || open coverage.html || start coverage.html
 
 # Clean build artifacts
 clean:
