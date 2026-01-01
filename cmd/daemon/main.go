@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/genricoloni/synest/internal/domain"
+	"github.com/genricoloni/synest/internal/fetcher"
 	"github.com/genricoloni/synest/internal/monitor"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
@@ -27,6 +28,10 @@ var AppOptions = fx.Options(
 		fx.Annotate(
 			monitor.NewMprisMonitor,
 			fx.As(new(domain.Monitor)),
+		),
+		fx.Annotate(
+			fetcher.NewHTTPFetcher,
+			fx.As(new(domain.Fetcher)),
 		),
 	),
 

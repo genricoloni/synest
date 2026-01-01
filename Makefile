@@ -33,13 +33,30 @@ test:
 	$(GOTEST) ./... -v
 
 # Run tests with coverage
+COVERAGE_FILE := coverage.out
+COVERAGE_CLEAN := coverage.clean.out
+COVERAGE_HTML := coverage.html
+
 test-coverage:
-	@echo "Running tests with coverage..."
-	$(GOTEST) ./... -v -covermode=atomic -coverprofile=coverage.out
-	grep -vE "_mock.go|dbus_client.go" coverage.out > coverage.clean.out
-	$(GOCMD) tool cover -html=coverage.clean.out -o coverage.html
-	@echo "Opening coverage report..."
-	xdg-open coverage.html || open coverage.html || start coverage.html
+	@echo "==> Cleaning previous coverage profiles..."
+	@rm -f $(COVERAGE_FILE) $(COVERAGE_CLEAN) $(COVERAGE_HTML)
+
+	@echo "==> Running tests with covermode=atomic..."
+	@# -covermode=atomic is essential for concurrent code (goroutines)
+	go test ./... -v -covermode=atomic -coverprofile=$(COVERAGE_FILE)
+	
+	@echo "==> Filtering generated files and boilerplate..."
+	@# Exclude mocks, generated files and dbus_client adapter for accurate percentage
+	@grep -vE "_mock.go|dbus_client.go|main.go" $(COVERAGE_FILE) > $(COVERAGE_CLEAN)
+	
+	@echo "==> Coverage summary by function:"
+	@go tool cover -func=$(COVERAGE_CLEAN)
+	
+	@echo "==> Generating HTML report..."
+	@go tool cover -html=$(COVERAGE_CLEAN) -o $(COVERAGE_HTML)
+	@echo "Report generated: $(COVERAGE_HTML)"
+
+	@xdg-open $(COVERAGE_HTML) || open $(COVERAGE_HTML) || echo "Please open $(COVERAGE_HTML) manually."
 
 # Clean build artifacts
 clean:
