@@ -35,9 +35,12 @@ test:
 # Run tests with coverage
 test-coverage:
 	@echo "Running tests with coverage..."
-	$(GOTEST) ./... -v -coverprofile=coverage.out
+	$(GOTEST) ./... -v -coverprofile=coverage.out -coverpkg=./internal/...,./cmd/... | grep -v "no packages being tested depend on matches for pattern"
+	@grep -v -E "(mocks/|dbus_client\.go)" coverage.out > coverage.tmp && mv coverage.tmp coverage.out
 	$(GOCMD) tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
+	@echo "Opening coverage report in browser..."
+	@xdg-open coverage.html 2>/dev/null || open coverage.html 2>/dev/null || echo "Please open coverage.html manually"
 
 # Clean build artifacts
 clean:
@@ -62,6 +65,12 @@ deps:
 	@echo "Downloading dependencies..."
 	$(GOMOD) download
 
+# Generate mocks for testing
+generate:
+	@echo "Generating mocks..."
+	$(GOCMD) generate ./...
+	@echo "Mock generation complete"
+
 # Install the binary
 install: build
 	@echo "Installing $(BINARY_NAME)..."
@@ -78,5 +87,8 @@ help:
 	@echo "  make clean         - Remove build artifacts"
 	@echo "  make lint          - Run golangci-lint"
 	@echo "  make tidy          - Tidy go.mod"
+	@echo "  make deps          - Download dependencies"
+	@echo "  make generate      - Generate mocks for testing"
+	@echo "  make install       - Install binary to /usr/local/bin"
 	@echo "  make deps          - Download dependencies"
 	@echo "  make install       - Install binary to /usr/local/bin"
