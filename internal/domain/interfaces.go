@@ -8,10 +8,10 @@ type Monitor interface {
 	// Start begins monitoring for media events
 	// It should block until context is cancelled or an error occurs
 	Start(ctx context.Context) error
-	
+
 	// Stop gracefully stops the monitor
 	Stop(ctx context.Context) error
-	
+
 	// Events returns a read-only channel that emits MediaMetadata
 	// when media playback state changes
 	Events() <-chan MediaMetadata
@@ -24,6 +24,14 @@ type Processor interface {
 	// mode specifies the processing type (e.g., "blur", "gradient", "lyrics")
 	// Returns the file path to the generated wallpaper or an error
 	Generate(imgData []byte, mode string) (string, error)
+}
+
+// ImageProcessor defines the interface for in-memory image processing
+// This is OS-agnostic and works purely with byte streams
+type ImageProcessor interface {
+	// Process transforms image data (e.g., blur, resize, gradient)
+	// Returns the processed image bytes or an error
+	Process(ctx context.Context, imageData []byte) ([]byte, error)
 }
 
 // Fetcher defines the interface for retrieving album artwork
@@ -43,7 +51,7 @@ type Executor interface {
 type Config interface {
 	// GetMode returns the current wallpaper generation mode
 	GetMode() string
-	
+
 	// GetOutputDir returns the directory for generated wallpapers
 	GetOutputDir() string
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/genricoloni/synest/internal/domain"
 	"github.com/genricoloni/synest/internal/fetcher"
 	"github.com/genricoloni/synest/internal/monitor"
+	"github.com/genricoloni/synest/internal/processor"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
@@ -25,6 +26,7 @@ var AppOptions = fx.Options(
 	// Provide dependencies (Qui aggiungerai monitor.NewMprisMonitor, etc.)
 	fx.Provide(
 		newLogger,
+		monitor.NewScreenResolution, // Detects screen resolution at startup
 		fx.Annotate(
 			monitor.NewMprisMonitor,
 			fx.As(new(domain.Monitor)),
@@ -32,6 +34,10 @@ var AppOptions = fx.Options(
 		fx.Annotate(
 			fetcher.NewHTTPFetcher,
 			fx.As(new(domain.Fetcher)),
+		),
+		fx.Annotate(
+			processor.NewBlurProcessor,
+			fx.As(new(domain.ImageProcessor)),
 		),
 	),
 

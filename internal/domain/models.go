@@ -25,3 +25,9 @@ type MediaMetadata struct {
 	// Status is the current playback status
 	Status PlayerStatus
 }
+
+// ScreenResolution holds the display dimensions
+type ScreenResolution struct {
+	Width  int
+	Height int
+}
