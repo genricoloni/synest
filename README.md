@@ -1,6 +1,6 @@
 # Synest
 
-**Synest** is a lightweight, high-performance daemon written in Go that monitors media playback via D-Bus (MPRIS) and generates dynamic wallpapers based on album artwork. It replaces complex Python scripts with a single, resource-efficient binary.
+**Synest** is a lightweight, high-performance daemon written in Go that monitors media playback via D-Bus (MPRIS) and generates dynamic wallpapers based on album artwork. It is based on a previous project called [syncWall](https://github.com/genricoloni/spotifysyncwall), replacing Python with Go for improved performance and resource efficiency, and removing Spotify-specific dependencies.
 
 ## Features
 

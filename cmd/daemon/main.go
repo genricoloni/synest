@@ -6,6 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/genricoloni/synest/internal/domain"
+	"github.com/genricoloni/synest/internal/monitor"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
@@ -22,6 +24,10 @@ var AppOptions = fx.Options(
 	// Provide dependencies (Qui aggiungerai monitor.NewMprisMonitor, etc.)
 	fx.Provide(
 		newLogger,
+		fx.Annotate(
+			monitor.NewMprisMonitor,
+			fx.As(new(domain.Monitor)),
+		),
 	),
 
 	// Lifecycle hooks
@@ -59,14 +65,30 @@ func newLogger() (*zap.Logger, error) {
 }
 
 // registerHooks sets up application lifecycle hooks
-func registerHooks(lc fx.Lifecycle, logger *zap.Logger) {
+func registerHooks(lc fx.Lifecycle, logger *zap.Logger, mon domain.Monitor) {
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			logger.Info("Synest Daemon Started")
+
+			// Start the MPRIS monitor in a separate goroutine
+			// (monitor.Start is blocking, it waits until context is cancelled)
+			go func() {
+				if err := mon.Start(ctx); err != nil && ctx.Err() == nil {
+					logger.Error("Monitor stopped with error", zap.Error(err))
+				}
+			}()
+
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
 			logger.Info("Shutting down")
+
+			// Stop the monitor gracefully
+			if err := mon.Stop(ctx); err != nil {
+				logger.Error("Failed to stop monitor", zap.Error(err))
+				return err
+			}
+
 			return nil
 		},
 	})
