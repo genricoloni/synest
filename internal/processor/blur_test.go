@@ -108,7 +108,9 @@ func TestBlurProcessor_Process(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			processor := NewBlurProcessor(zap.NewNop(), tt.resolution)
+			// Create mock config
+			mockCfg := &mockConfig{outputDir: "/tmp/synest-test"}
+			processor := NewBlurProcessor(zap.NewNop(), tt.resolution, mockCfg)
 			result, err := processor.Process(context.Background(), tt.imageData)
 
 			// Verify error
@@ -137,7 +139,8 @@ func TestBlurProcessor_Process(t *testing.T) {
 // TestBlurProcessor_Process_ContextCancellation tests context cancellation handling
 func TestBlurProcessor_Process_ContextCancellation(t *testing.T) {
 	res := &domain.ScreenResolution{Width: 1920, Height: 1080}
-	processor := NewBlurProcessor(zap.NewNop(), res)
+	mockCfg := &mockConfig{outputDir: "/tmp/synest-test"}
+	processor := NewBlurProcessor(zap.NewNop(), res, mockCfg)
 	imageData := createTestJPEG(100, 100, color.RGBA{R: 255, G: 0, B: 0, A: 255})
 
 	// Note: The current implementation doesn't check context during processing
@@ -171,4 +174,21 @@ func createTestJPEG(width, height int, col color.Color) []byte {
 		panic("failed to create test JPEG: " + err.Error())
 	}
 	return buf.Bytes()
+}
+
+// mockConfig is a simple mock implementation of domain.Config for testing
+type mockConfig struct {
+	outputDir string
+	mode      string
+}
+
+func (m *mockConfig) GetOutputDir() string {
+	return m.outputDir
+}
+
+func (m *mockConfig) GetMode() string {
+	if m.mode == "" {
+		return "blur"
+	}
+	return m.mode
 }

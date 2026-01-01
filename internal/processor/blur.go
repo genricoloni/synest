@@ -8,6 +8,8 @@ import (
 	"image/jpeg"
 	_ "image/jpeg" // JPEG format support
 	_ "image/png"  // PNG format support
+	"os"
+	"path/filepath"
 
 	"github.com/disintegration/imaging"
 	"github.com/genricoloni/synest/internal/domain"
@@ -15,8 +17,9 @@ import (
 )
 
 const (
-	defaultBlurRadius = 15.0
-	coverHeightRatio  = 0.40 // Cover size as percentage of screen height
+	defaultBlurRadius   = 15.0
+	coverHeightRatio    = 0.40 // Cover size as percentage of screen height
+	wallpaperFilename   = "current_wallpaper.jpg"
 )
 
 // ProcessorConfig holds configuration for image processing
@@ -30,13 +33,15 @@ type BlurProcessor struct {
 	logger *zap.Logger
 	res    *domain.ScreenResolution // Injected automatically by Fx
 	config ProcessorConfig
+	appCfg domain.Config // Application configuration for output dir
 }
 
 // NewBlurProcessor creates a new blur-based image processor
-func NewBlurProcessor(logger *zap.Logger, res *domain.ScreenResolution) *BlurProcessor {
+func NewBlurProcessor(logger *zap.Logger, res *domain.ScreenResolution, appCfg domain.Config) *BlurProcessor {
 	return &BlurProcessor{
 		logger: logger,
 		res:    res,
+		appCfg: appCfg,
 		config: ProcessorConfig{
 			BlurRadius:       defaultBlurRadius,
 			CoverSizePercent: coverHeightRatio,
@@ -86,4 +91,41 @@ func (p *BlurProcessor) Process(ctx context.Context, imageData []byte) ([]byte, 
 
 	p.logger.Debug("Image processed successfully", zap.Int("bytes", buf.Len()))
 	return buf.Bytes(), nil
+}
+
+// Generate creates a wallpaper from album art data and saves it to disk
+// This method satisfies the domain.Processor interface
+func (p *BlurProcessor) Generate(imgData []byte, mode string) (string, error) {
+	// 1. Process image (existing logic)
+	processedData, err := p.Process(context.Background(), imgData)
+	if err != nil {
+		return "", fmt.Errorf("failed to process image: %w", err)
+	}
+
+	// 2. Ensure output directory exists
+	outputDir := p.appCfg.GetOutputDir()
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	// 3. Generate output file path
+	outputPath := filepath.Join(outputDir, wallpaperFilename)
+
+	// 4. Write processed image to disk
+	if err := os.WriteFile(outputPath, processedData, 0644); err != nil {
+		return "", fmt.Errorf("failed to write wallpaper file: %w", err)
+	}
+
+	p.logger.Info("Wallpaper generated successfully",
+		zap.String("path", outputPath),
+		zap.Int("size", len(processedData)),
+		zap.String("mode", mode))
+
+	// 5. Return absolute path
+	absPath, err := filepath.Abs(outputPath)
+	if err != nil {
+		return outputPath, nil // Return relative path if abs fails
+	}
+
+	return absPath, nil
 }

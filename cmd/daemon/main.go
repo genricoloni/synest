@@ -6,7 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/genricoloni/synest/internal/config"
 	"github.com/genricoloni/synest/internal/domain"
+	"github.com/genricoloni/synest/internal/executor"
 	"github.com/genricoloni/synest/internal/fetcher"
 	"github.com/genricoloni/synest/internal/monitor"
 	"github.com/genricoloni/synest/internal/processor"
@@ -28,6 +30,10 @@ var AppOptions = fx.Options(
 		newLogger,
 		monitor.NewScreenResolution, // Detects screen resolution at startup
 		fx.Annotate(
+			config.NewAppConfig,
+			fx.As(new(domain.Config)),
+		),
+		fx.Annotate(
 			monitor.NewMprisMonitor,
 			fx.As(new(domain.Monitor)),
 		),
@@ -38,6 +44,11 @@ var AppOptions = fx.Options(
 		fx.Annotate(
 			processor.NewBlurProcessor,
 			fx.As(new(domain.ImageProcessor)),
+			fx.As(new(domain.Processor)),
+		),
+		fx.Annotate(
+			executor.NewExecutor,
+			fx.As(new(domain.Executor)),
 		),
 	),
 
