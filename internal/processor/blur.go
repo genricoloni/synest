@@ -17,9 +17,9 @@ import (
 )
 
 const (
-	defaultBlurRadius   = 15.0
-	coverHeightRatio    = 0.40 // Cover size as percentage of screen height
-	wallpaperFilename   = "current_wallpaper.jpg"
+	defaultBlurRadius = 15.0
+	coverHeightRatio  = 0.40 // Cover size as percentage of screen height
+	wallpaperFilename = "current_wallpaper.jpg"
 )
 
 // ProcessorConfig holds configuration for image processing

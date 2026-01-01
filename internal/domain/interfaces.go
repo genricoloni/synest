@@ -45,6 +45,10 @@ type Fetcher interface {
 type Executor interface {
 	// SetWallpaper sets the desktop wallpaper to the specified image path
 	SetWallpaper(ctx context.Context, imagePath string) error
+
+	// GetCurrentWallpaper retrieves the path to the currently set wallpaper
+	// Returns an error if the operation is not supported or fails
+	GetCurrentWallpaper(ctx context.Context) (string, error)
 }
 
 // Config defines the interface for application configuration

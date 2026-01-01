@@ -163,3 +163,80 @@ func (e *LinuxExecutor) SetWallpaper(ctx context.Context, imagePath string) erro
 
 	return nil
 }
+
+// GetCurrentWallpaper retrieves the path to the currently set wallpaper
+func (e *LinuxExecutor) GetCurrentWallpaper(ctx context.Context) (string, error) {
+	switch e.command.Name {
+	case "swww":
+		return e.getCurrentWallpaperSwww(ctx)
+	case "hyprpaper":
+		return "", fmt.Errorf("hyprpaper does not support querying current wallpaper")
+	case "gnome":
+		return e.getCurrentWallpaperGnome(ctx)
+	case "feh", "swaybg", "nitrogen":
+		// These tools don't provide easy ways to query current wallpaper
+		return "", fmt.Errorf("%s does not support querying current wallpaper", e.command.Name)
+	default:
+		return "", fmt.Errorf("wallpaper query not supported for %s", e.command.Name)
+	}
+}
+
+// getCurrentWallpaperSwww queries swww for the current wallpaper
+func (e *LinuxExecutor) getCurrentWallpaperSwww(ctx context.Context) (string, error) {
+	cmd := exec.CommandContext(ctx, "swww", "query")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to query swww: %w (output: %s)", err, string(output))
+	}
+
+	// Parse output: "eDP-1: image: /path/to/wallpaper.jpg"
+	// Format can vary, but typically contains "image:" followed by the path
+	outputStr := strings.TrimSpace(string(output))
+	lines := strings.Split(outputStr, "\n")
+
+	for _, line := range lines {
+		// Look for "image:" in the line
+		if idx := strings.Index(line, "image:"); idx != -1 {
+			// Extract path after "image:"
+			path := strings.TrimSpace(line[idx+6:])
+			if path != "" {
+				e.logger.Debug("Captured current wallpaper from swww",
+					zap.String("path", path))
+				return path, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("could not parse wallpaper path from swww query output: %s", outputStr)
+}
+
+// getCurrentWallpaperGnome queries gsettings for the current wallpaper
+func (e *LinuxExecutor) getCurrentWallpaperGnome(ctx context.Context) (string, error) {
+	// Try dark theme first (as we set it)
+	cmd := exec.CommandContext(ctx, "gsettings", "get", "org.gnome.desktop.background", "picture-uri-dark")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// Fallback to light theme
+		cmd = exec.CommandContext(ctx, "gsettings", "get", "org.gnome.desktop.background", "picture-uri")
+		output, err = cmd.CombinedOutput()
+		if err != nil {
+			return "", fmt.Errorf("failed to query gnome wallpaper: %w", err)
+		}
+	}
+
+	// Parse output: 'file:///path/to/wallpaper.jpg'
+	uri := strings.TrimSpace(string(output))
+	// Remove quotes
+	uri = strings.Trim(uri, "'\"")
+	// Remove file:// prefix if present
+	path := strings.TrimPrefix(uri, "file://")
+
+	if path == "" {
+		return "", fmt.Errorf("empty wallpaper path from gsettings")
+	}
+
+	e.logger.Debug("Captured current wallpaper from gnome",
+		zap.String("path", path))
+
+	return path, nil
+}
